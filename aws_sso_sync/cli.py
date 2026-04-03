@@ -167,6 +167,57 @@ def cmd_recall(path='.'):
     if abs_path in index:
         print(index[abs_path].get("profile", ""))
 
+def cmd_ui(out_file=None):
+    """Interactive TUI for selecting an AWS Profile."""
+    try:
+        import questionary
+    except ImportError:
+        print("Please 'pip install questionary' for the interactive TUI.")
+        return
+
+    profiles = []
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('[profile '):
+                    profiles.append(line.split()[1].strip(']'))
+
+    if not profiles:
+        print("No profiles found in ~/.aws/config")
+        return
+
+    profiles.sort()
+    learned = get_z_index().get(os.path.abspath('.'), {}).get("profile", "")
+    current = os.environ.get("AWS_PROFILE", "")
+
+    choices = []
+    default_choice = None
+
+    for p in profiles:
+        title = p
+        if p == learned:
+            title = f"⭐ {p} (Learned here)"
+            default_choice = title
+        elif p == current:
+            title = f"▶ {p} (Currently active)"
+            
+        choices.append(questionary.Choice(title, value=p))
+
+    answer = questionary.select(
+        "Select AWS Profile (Start typing to search):",
+        choices=choices,
+        default=default_choice,
+        use_indicator=True,
+    ).ask()
+
+    if answer:
+        cmd_learn(answer, '.')
+        if out_file:
+            with open(out_file, 'w', encoding='utf-8') as f:
+                f.write(answer)
+        else:
+            print(answer)
+
 def main():
     parser = argparse.ArgumentParser(description="AWS SSO Synchronizer & Ambient Context Mapper")
     subparsers = parser.add_subparsers(dest="command")
@@ -183,10 +234,16 @@ def main():
     parser_recall = subparsers.add_parser("recall", help="Print the learned profile for the directory")
     parser_recall.add_argument("--path", default=".", help="Directory to check (defaults to current)")
 
+    # Command: ui
+    parser_ui = subparsers.add_parser("ui", help="Interactive TUI for selecting a profile")
+    parser_ui.add_argument("--out", help="File to write the selected profile to")
+
     args = parser.parse_args()
 
     if args.command == "sync" or not args.command:
         cmd_sync()
+    elif args.command == "ui":
+        cmd_ui(args.out)
     elif args.command == "learn":
         cmd_learn(args.profile, args.path)
     elif args.command == "recall":

@@ -4,21 +4,26 @@
 # ☁️ AWS Quality of Life Helpers (With Z-Index)
 # ==========================================
 
-# AWS Profile Switcher & Z-Index Learner
+# AWS Profile Switcher & Z-Index Learner (TUI)
 awsp() {
-    if [ -z "$1" ]; then
-        if [ -n "$AWS_PROFILE" ]; then
-            echo -e "Current AWS_PROFILE: \033[1;32m$AWS_PROFILE\033[0m\n"
-        else
-            echo -e "Current AWS_PROFILE: \033[1;31mNone\033[0m\n"
-        fi
-        echo "Available profiles:"
-        grep '\[profile' ~/.aws/config | sed 's/\[profile //g' | sed 's/\]//g' | sort | column
-    else
+    if [ -n "$1" ]; then
+        # Direct assignment if argument provided
         export AWS_PROFILE=$1
-        # Teach the ambient Z-index to remember this profile for this directory
         aws-sso-sync learn "$1" 2>/dev/null
         echo -e "AWS_PROFILE set to: \033[1;32m$AWS_PROFILE\033[0m (Learned for this directory!)"
+    else
+        # Interactive TUI mode
+        local tmp_file="/tmp/aws_sso_sync_selection"
+        aws-sso-sync ui --out "$tmp_file"
+        
+        if [ -f "$tmp_file" ]; then
+            local selected=$(cat "$tmp_file")
+            rm -f "$tmp_file"
+            if [ -n "$selected" ]; then
+                export AWS_PROFILE="$selected"
+                echo -e "\n\033[1;32m☁️ AWS_PROFILE activated: $AWS_PROFILE\033[0m\n"
+            fi
+        fi
     fi
 }
 
