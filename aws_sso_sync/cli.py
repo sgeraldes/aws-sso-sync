@@ -220,7 +220,6 @@ def cmd_ui(out_file=None):
 
 def cmd_install():
     """Install shell hooks for Bash, Zsh, and PowerShell."""
-    import sys
     
     hook_dir = os.path.join(AWS_DIR, "sso-sync")
     os.makedirs(hook_dir, exist_ok=True)
@@ -228,6 +227,7 @@ def cmd_install():
     sh_hook_path = os.path.join(hook_dir, "hook.sh")
     ps1_hook_path = os.path.join(hook_dir, "hook.ps1")
     
+    # Bash/Zsh hook
     sh_code = '''
 # AWS SSO Sync - Shell Integration
 awsp() {
@@ -269,9 +269,11 @@ elif [ -n "$ZSH_VERSION" ]; then
     add-zsh-hook chpwd _aws_z_index_hook
 fi
 '''
+    
     with open(sh_hook_path, 'w', encoding='utf-8') as f:
         f.write(sh_code.strip())
 
+    # PowerShell hook
     ps_code = '''
 function awsp {
     param([string]$profileName)
@@ -318,23 +320,28 @@ if (Test-Path "Function:\\prompt") {
     }
 }
 '''
+    
     with open(ps1_hook_path, 'w', encoding='utf-8') as f:
         f.write(ps_code.strip())
 
     print("[+] Wrote cross-platform hooks to ~/.aws/sso-sync/")
 
+    # Inject into RC files
     def inject_source(rc_file, source_line):
         rc_path = os.path.expanduser(rc_file)
         if not os.path.exists(rc_path):
             with open(rc_path, 'w', encoding='utf-8') as f:
-                f.write(source_line + "\n")
+                f.write(source_line)
+                f.write('\n')
             print(f"[+] Created {rc_file} and injected hook.")
         else:
             with open(rc_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             if "sso-sync/hook" not in content:
                 with open(rc_path, 'a', encoding='utf-8') as f:
-                    f.write("\n" + source_line + "\n")
+                    f.write('\n')
+                    f.write(source_line)
+                    f.write('\n')
                 print(f"[+] Injected hook into {rc_file}")
             else:
                 print(f"[*] Hook already exists in {rc_file}")
@@ -347,7 +354,6 @@ if (Test-Path "Function:\\prompt") {
         ps_source_line = f'. "{ps1_hook_path}"'
         
         try:
-            # Attempt to inject into modern PowerShell (pwsh)
             pwsh_cmd = subprocess.run(['pwsh', '-NoProfile', '-Command', '"" + $PROFILE'], capture_output=True, text=True)
             if pwsh_cmd.returncode == 0 and pwsh_cmd.stdout.strip():
                 ps_profile = pwsh_cmd.stdout.strip()
@@ -357,7 +363,6 @@ if (Test-Path "Function:\\prompt") {
             pass
 
         try:
-            # Attempt to inject into legacy PowerShell (powershell.exe)
             ps_cmd = subprocess.run(['powershell', '-NoProfile', '-Command', '"" + $PROFILE'], capture_output=True, text=True)
             if ps_cmd.returncode == 0 and ps_cmd.stdout.strip():
                 ps_profile_old = ps_cmd.stdout.strip()
