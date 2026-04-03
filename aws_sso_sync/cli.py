@@ -344,14 +344,27 @@ if (Test-Path "Function:\\prompt") {
     inject_source("~/.zshrc", sh_source_line)
 
     if os.name == 'nt':
-        ps_profile = os.path.join(os.environ.get('USERPROFILE', '~'), 'Documents', 'PowerShell', 'Microsoft.PowerShell_profile.ps1')
-        ps_profile_old = os.path.join(os.environ.get('USERPROFILE', '~'), 'Documents', 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1')
         ps_source_line = f'. "{ps1_hook_path}"'
         
-        os.makedirs(os.path.dirname(ps_profile), exist_ok=True)
-        inject_source(ps_profile, ps_source_line)
-        if os.path.exists(ps_profile_old):
-            inject_source(ps_profile_old, ps_source_line)
+        try:
+            # Attempt to inject into modern PowerShell (pwsh)
+            pwsh_cmd = subprocess.run(['pwsh', '-NoProfile', '-Command', 'Write-Host $PROFILE'], capture_output=True, text=True)
+            if pwsh_cmd.returncode == 0 and pwsh_cmd.stdout.strip():
+                ps_profile = pwsh_cmd.stdout.strip()
+                os.makedirs(os.path.dirname(ps_profile), exist_ok=True)
+                inject_source(ps_profile, ps_source_line)
+        except Exception:
+            pass
+
+        try:
+            # Attempt to inject into legacy PowerShell (powershell.exe)
+            ps_cmd = subprocess.run(['powershell', '-NoProfile', '-Command', 'Write-Host $PROFILE'], capture_output=True, text=True)
+            if ps_cmd.returncode == 0 and ps_cmd.stdout.strip():
+                ps_profile_old = ps_cmd.stdout.strip()
+                os.makedirs(os.path.dirname(ps_profile_old), exist_ok=True)
+                inject_source(ps_profile_old, ps_source_line)
+        except Exception:
+            pass
 
     print("\\n[+] Installation complete! Please restart your terminal or open a new tab.")
 
