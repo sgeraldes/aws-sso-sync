@@ -327,8 +327,29 @@ if (Test-Path "Function:\\prompt") {
     print("[+] Wrote cross-platform hooks to ~/.aws/sso-sync/")
 
     # Inject into RC files
+    def _sanitize_profile_content(content: str) -> str:
+        """Repair legacy malformed insertions from earlier installer versions."""
+        fixed = content.replace("\r\n", "\n")
+
+        # Repair literal escaped newlines accidentally written as text
+        fixed = fixed.replace("\\nsource ", "\nsource ")
+        fixed = fixed.replace("\\n. \"", "\n. \"")
+        fixed = fixed.replace("\"\\n", "\"\n")
+
+        # Remove legacy repo-local integration lines (old approach)
+        fixed_lines = []
+        for line in fixed.split("\n"):
+            if "shell_integration.sh" in line:
+                continue
+            if "shell_integration.ps1" in line:
+                continue
+            fixed_lines.append(line)
+
+        return "\n".join(fixed_lines)
+
     def inject_source(rc_file, source_line):
         rc_path = os.path.expanduser(rc_file)
+
         if not os.path.exists(rc_path):
             with open(rc_path, 'w', encoding='utf-8') as f:
                 f.write(source_line)
@@ -339,16 +360,16 @@ if (Test-Path "Function:\\prompt") {
         with open(rc_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # Self-heal older broken installs that wrote literal "\\n" into profile files
-        # e.g. \n. "C:\\Users\\...\\hook.ps1"\n
-        if "sso-sync/hook" in content and "\\n" in content:
-            content = content.replace("\\n", "\n")
+        sanitized = _sanitize_profile_content(content)
+        if sanitized != content:
             with open(rc_path, 'w', encoding='utf-8') as f:
-                f.write(content)
+                f.write(sanitized)
+            content = sanitized
 
-        if "sso-sync/hook" not in content:
+        if source_line not in content:
             with open(rc_path, 'a', encoding='utf-8') as f:
-                f.write('\n')
+                if not content.endswith('\n'):
+                    f.write('\n')
                 f.write(source_line)
                 f.write('\n')
             print(f"[+] Injected hook into {rc_file}")
