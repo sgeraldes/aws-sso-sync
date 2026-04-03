@@ -348,7 +348,7 @@ if (Test-Path "Function:\\prompt") {
         
         try:
             # Attempt to inject into modern PowerShell (pwsh)
-            pwsh_cmd = subprocess.run(['pwsh', '-NoProfile', '-Command', 'Write-Host $PROFILE'], capture_output=True, text=True)
+            pwsh_cmd = subprocess.run(['pwsh', '-NoProfile', '-Command', '"" + $PROFILE'], capture_output=True, text=True)
             if pwsh_cmd.returncode == 0 and pwsh_cmd.stdout.strip():
                 ps_profile = pwsh_cmd.stdout.strip()
                 os.makedirs(os.path.dirname(ps_profile), exist_ok=True)
@@ -358,7 +358,7 @@ if (Test-Path "Function:\\prompt") {
 
         try:
             # Attempt to inject into legacy PowerShell (powershell.exe)
-            ps_cmd = subprocess.run(['powershell', '-NoProfile', '-Command', 'Write-Host $PROFILE'], capture_output=True, text=True)
+            ps_cmd = subprocess.run(['powershell', '-NoProfile', '-Command', '"" + $PROFILE'], capture_output=True, text=True)
             if ps_cmd.returncode == 0 and ps_cmd.stdout.strip():
                 ps_profile_old = ps_cmd.stdout.strip()
                 os.makedirs(os.path.dirname(ps_profile_old), exist_ok=True)
