@@ -264,7 +264,6 @@ _aws_z_index_hook() {
         local learned=$(aws-sso-sync recall 2>/dev/null)
         if [ -n "$learned" ] && [ "$AWS_PROFILE" != "$learned" ]; then
             export AWS_PROFILE="$learned"
-            echo -e "\\033[2m☁️  [AWS Z-Index] Auto-restored profile: \\033[1;32m$learned\\033[0m"
         fi
     fi
 }
@@ -298,20 +297,19 @@ function awsp {
             Remove-Item $tmpFile
             if (![string]::IsNullOrWhiteSpace($selected)) {
                 $env:AWS_PROFILE = $selected
-                Write-Host "`n☁️ AWS_PROFILE activated: $env:AWS_PROFILE`n" -ForegroundColor Green
+                Write-Host "☁️ AWS_PROFILE activated: $env:AWS_PROFILE" -ForegroundColor Green
             }
         }
     }
 }
 
-$global:AwsZIndexLastPwd = ""
+$global:AwsZIndexLastPwd = $PWD.Path
 function Invoke-AwsZIndexHook {
     if ($global:AwsZIndexLastPwd -ne $PWD.Path) {
         $global:AwsZIndexLastPwd = $PWD.Path
         $learned = aws-sso-sync recall 2>$null
         if (![string]::IsNullOrWhiteSpace($learned) -and $env:AWS_PROFILE -ne $learned) {
             $env:AWS_PROFILE = $learned
-            Write-Host "`n☁️  [AWS Z-Index] Auto-restored profile: $learned" -ForegroundColor DarkGray
         }
     }
 }
@@ -337,7 +335,7 @@ if (Test-Path "Function:\\prompt") {
 
     # Inject into RC files
     def _sanitize_profile_content(content: str) -> str:
-        """Repair legacy malformed insertions from earlier installer versions."""
+        """Repair malformed and duplicate installer entries from older versions."""
         fixed = content.replace("\r\n", "\n")
 
         # Repair literal escaped newlines accidentally written as text
@@ -345,52 +343,52 @@ if (Test-Path "Function:\\prompt") {
         fixed = fixed.replace("\\n. \"", "\n. \"")
         fixed = fixed.replace("\"\\n", "\"\n")
 
-        # Remove legacy repo-local integration lines (old approach)
-        fixed_lines = []
+        cleaned_lines = []
         for line in fixed.split("\n"):
-            if "shell_integration.sh" in line:
-                continue
-            if "shell_integration.ps1" in line:
-                continue
-            fixed_lines.append(line)
+            stripped = line.strip()
 
-        return "\n".join(fixed_lines)
+            # Remove old/broken integration references
+            if "shell_integration.sh" in stripped or "shell_integration.ps1" in stripped:
+                continue
+
+            # Remove any previous aws-sso-sync hook line; we'll inject exactly one canonical line
+            if "sso-sync/hook.sh" in stripped or "sso-sync\\hook.sh" in stripped:
+                continue
+            if "sso-sync/hook.ps1" in stripped or "sso-sync\\hook.ps1" in stripped:
+                continue
+
+            cleaned_lines.append(line)
+
+        return "\n".join(cleaned_lines).rstrip() + "\n"
 
     def inject_source(rc_file, source_line):
         rc_path = os.path.expanduser(rc_file)
 
-        if not os.path.exists(rc_path):
-            with open(rc_path, 'w', encoding='utf-8') as f:
-                f.write(source_line)
-                f.write('\n')
-            print(f"[+] Created {rc_file} and injected hook.")
-            return
-
-        with open(rc_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        if os.path.exists(rc_path):
+            with open(rc_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        else:
+            content = ""
 
         sanitized = _sanitize_profile_content(content)
-        if sanitized != content:
-            with open(rc_path, 'w', encoding='utf-8') as f:
-                f.write(sanitized)
-            content = sanitized
 
-        if source_line not in content:
-            with open(rc_path, 'a', encoding='utf-8') as f:
-                if not content.endswith('\n'):
-                    f.write('\n')
-                f.write(source_line)
-                f.write('\n')
-            print(f"[+] Injected hook into {rc_file}")
+        if source_line not in sanitized:
+            sanitized += source_line + "\n"
+            action = "Injected hook into" if content else "Created"
         else:
-            print(f"[*] Hook already exists in {rc_file}")
+            action = "Hook already exists in"
 
-    sh_source_line = f'source "{sh_hook_path}"'
+        with open(rc_path, 'w', encoding='utf-8') as f:
+            f.write(sanitized)
+
+        print(f"[+] {action} {rc_file}" if action != "Hook already exists in" else f"[*] {action} {rc_file}")
+
+    sh_source_line = 'source "$HOME/.aws/sso-sync/hook.sh"'
     inject_source("~/.bashrc", sh_source_line)
     inject_source("~/.zshrc", sh_source_line)
 
     if os.name == 'nt':
-        ps_source_line = f'. "{ps1_hook_path}"'
+        ps_source_line = '. "$HOME/.aws/sso-sync/hook.ps1"'
         
         try:
             pwsh_cmd = subprocess.run(['pwsh', '-NoProfile', '-Command', '"" + $PROFILE'], capture_output=True, text=True)
