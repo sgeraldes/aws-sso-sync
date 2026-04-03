@@ -334,17 +334,26 @@ if (Test-Path "Function:\\prompt") {
                 f.write(source_line)
                 f.write('\n')
             print(f"[+] Created {rc_file} and injected hook.")
+            return
+
+        with open(rc_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Self-heal older broken installs that wrote literal "\\n" into profile files
+        # e.g. \n. "C:\\Users\\...\\hook.ps1"\n
+        if "sso-sync/hook" in content and "\\n" in content:
+            content = content.replace("\\n", "\n")
+            with open(rc_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+
+        if "sso-sync/hook" not in content:
+            with open(rc_path, 'a', encoding='utf-8') as f:
+                f.write('\n')
+                f.write(source_line)
+                f.write('\n')
+            print(f"[+] Injected hook into {rc_file}")
         else:
-            with open(rc_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            if "sso-sync/hook" not in content:
-                with open(rc_path, 'a', encoding='utf-8') as f:
-                    f.write('\n')
-                    f.write(source_line)
-                    f.write('\n')
-                print(f"[+] Injected hook into {rc_file}")
-            else:
-                print(f"[*] Hook already exists in {rc_file}")
+            print(f"[*] Hook already exists in {rc_file}")
 
     sh_source_line = f'source "{sh_hook_path}"'
     inject_source("~/.bashrc", sh_source_line)
