@@ -327,14 +327,14 @@ if (Test-Path "Function:\\prompt") {
         rc_path = os.path.expanduser(rc_file)
         if not os.path.exists(rc_path):
             with open(rc_path, 'w', encoding='utf-8') as f:
-                f.write(source_line + "\\n")
+                f.write(source_line + "\n")
             print(f"[+] Created {rc_file} and injected hook.")
         else:
             with open(rc_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             if "sso-sync/hook" not in content:
                 with open(rc_path, 'a', encoding='utf-8') as f:
-                    f.write("\\n" + source_line + "\\n")
+                    f.write("\n" + source_line + "\n")
                 print(f"[+] Injected hook into {rc_file}")
             else:
                 print(f"[*] Hook already exists in {rc_file}")
@@ -366,7 +366,7 @@ if (Test-Path "Function:\\prompt") {
         except Exception:
             pass
 
-    print("\\n[+] Installation complete! Please restart your terminal or open a new tab.")
+    print("\n[+] Installation complete! Please restart your terminal or open a new tab.")
 
 
 def main():
