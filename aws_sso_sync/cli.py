@@ -169,9 +169,9 @@ def cmd_recall(path='.'):
 def cmd_ui(out_file=None):
     """Interactive TUI for selecting an AWS Profile."""
     try:
-        import questionary
+        from InquirerPy import inquirer
     except ImportError:
-        print("Please 'pip install questionary' for the interactive TUI.")
+        print("Please 'pip install InquirerPy' for the interactive TUI.")
         return
 
     profiles = []
@@ -196,20 +196,19 @@ def cmd_ui(out_file=None):
         title = p
         if p == learned:
             title = f"⭐ {p} (Learned here)"
-            default_choice = title
+            default_choice = p
         elif p == current:
             title = f"▶ {p} (Currently active)"
             
-        choices.append(questionary.Choice(title, value=p))
+        choices.append({"name": title, "value": p})
 
-    answer = questionary.select(
-        "Select AWS Profile (Start typing to search):",
+    answer = inquirer.fuzzy(
+        message="Select AWS Profile:",
         choices=choices,
         default=default_choice,
-        use_indicator=True,
-        use_search_filter=True,
-        use_jk_keys=False,
-    ).ask()
+        max_height="70%",
+        instruction="[Type to search, Enter to select, Esc to cancel]",
+    ).execute()
 
     if answer:
         cmd_learn(answer, '.')

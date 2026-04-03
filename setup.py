@@ -11,6 +11,6 @@ setup(
             'aws-sso-sync=aws_sso_sync.cli:main',
         ],
     },
-    install_requires=['questionary'],
+    install_requires=['InquirerPy'],
     python_requires='>=3.6',
 )
