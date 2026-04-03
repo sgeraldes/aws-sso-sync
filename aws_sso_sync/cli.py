@@ -207,6 +207,8 @@ def cmd_ui(out_file=None):
         choices=choices,
         default=default_choice,
         use_indicator=True,
+        use_search_filter=True,
+        use_jk_keys=False,
     ).ask()
 
     if answer:
