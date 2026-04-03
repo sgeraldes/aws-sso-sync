@@ -202,13 +202,15 @@ def cmd_ui(out_file=None):
             
         choices.append({"name": title, "value": p})
 
+    header = "☁️ AWS Profile Selector  •  by Sebastian Geraldes  •  github.com/sgeraldes/aws-sso-sync"
+
     try:
         answer = inquirer.fuzzy(
-            message="Select AWS Profile:",
+            message=header,
             choices=choices,
             default=default_choice,
             max_height="70%",
-            instruction="[Type to search, Enter to select, Esc to cancel]",
+            instruction="[Type to search • Enter select • Esc cancel]",
             keybindings={
                 "interrupt": [{"key": "c-c"}, {"key": "escape"}],
             },
