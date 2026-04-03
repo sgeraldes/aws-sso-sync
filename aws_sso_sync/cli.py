@@ -202,13 +202,19 @@ def cmd_ui(out_file=None):
             
         choices.append({"name": title, "value": p})
 
-    answer = inquirer.fuzzy(
-        message="Select AWS Profile:",
-        choices=choices,
-        default=default_choice,
-        max_height="70%",
-        instruction="[Type to search, Enter to select, Esc to cancel]",
-    ).execute()
+    try:
+        answer = inquirer.fuzzy(
+            message="Select AWS Profile:",
+            choices=choices,
+            default=default_choice,
+            max_height="70%",
+            instruction="[Type to search, Enter to select, Esc to cancel]",
+            keybindings={
+                "interrupt": [{"key": "c-c"}, {"key": "escape"}],
+            },
+        ).execute()
+    except KeyboardInterrupt:
+        return
 
     if answer:
         cmd_learn(answer, '.')
