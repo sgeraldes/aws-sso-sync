@@ -210,7 +210,8 @@ def cmd_ui(out_file=None):
             choices=choices,
             default=default_choice,
             max_height="70%",
-            instruction="[Type to search • Enter select • Esc cancel]",
+            instruction="",
+            long_instruction="Type to search • Enter select • Esc cancel",
             keybindings={
                 "interrupt": [{"key": "c-c"}, {"key": "escape"}],
             },
