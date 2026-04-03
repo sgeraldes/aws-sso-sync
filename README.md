@@ -16,39 +16,20 @@ We bring the `zoxide`/`autojump` philosophy to AWS profiles. The system silently
 
 ## Setup & Installation
 
-### Step 1: Install the CLI Package
+This tool works seamlessly across **Windows (PowerShell), Windows (WSL / Bash), Mac (Zsh/Bash), and Linux.**
+
+### Step 1: Install the CLI
+Use `pipx` (or `pip`) to install the tool globally from your Git repository:
 ```bash
-# Run this inside the repo directory (or via git+https link)
-pip install -e .
+pip install git+https://github.com/YOUR_GITHUB_USERNAME/aws-sso-sync.git
+```
+*(Note: Replace `YOUR_GITHUB_USERNAME` with your actual username once you push this code to GitHub.)*
+
+### Step 2: Run the Installer
+Run the built-in installer. This will automatically detect your operating system and shell (Bash, Zsh, or PowerShell) and safely inject the ambient context hooks:
+```bash
+aws-sso-sync install
 ```
 
-### Step 2: Install Shell Hooks (Z-Index)
-To enable the `awsp` helper and the ambient context tracking, add this to your `~/.bashrc` (or source the `shell_integration.sh` file):
-
-```bash
-# 1. Profile Switcher + Z-Index Learner
-awsp() {
-    if [ -z "$1" ]; then
-        if [ -n "$AWS_PROFILE" ]; then echo -e "Current AWS_PROFILE: \033[1;32m$AWS_PROFILE\033[0m\n"; fi
-        echo "Available profiles:"
-        grep '\[profile' ~/.aws/config | sed 's/\[profile //g' | sed 's/\]//g' | sort | column
-    else
-        export AWS_PROFILE=$1
-        aws-sso-sync learn "$1" 2>/dev/null
-        echo -e "AWS_PROFILE set to: \033[1;32m$AWS_PROFILE\033[0m (Learned for this directory!)"
-    fi
-}
-
-# 2. Ambient Z-Index Restorer (Runs on directory change)
-_aws_z_index_hook() {
-    if [ "$_LAST_AWS_Z_PWD" != "$PWD" ]; then
-        _LAST_AWS_Z_PWD="$PWD"
-        local learned=$(aws-sso-sync recall 2>/dev/null)
-        if [ -n "$learned" ] && [ "$AWS_PROFILE" != "$learned" ]; then
-            export AWS_PROFILE="$learned"
-            echo -e "\n\033[2m☁️  [AWS Z-Index] Auto-restored profile: \033[1;32m$learned\033[0m\n"
-        fi
-    fi
-}
-PROMPT_COMMAND="_aws_z_index_hook; ${PROMPT_COMMAND:-}"
-```
+### Step 3: Restart your Terminal
+Restart your terminal. You can now use the interactive `awsp` command and enjoy ambient context auto-switching!
