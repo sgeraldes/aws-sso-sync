@@ -78,7 +78,6 @@ Leave the folder. When you `cd` back into it later, watch your terminal print:
 ---
 ### 👤 Author
 **Sebastian Geraldes**
-- GitHub: https://github.com/sgeraldes
 - Project: https://github.com/sgeraldes/aws-sso-sync
 
 *Built with ❤️ in an Agentic Pair Programming Session.*
